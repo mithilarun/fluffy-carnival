@@ -2,7 +2,7 @@ import ConfigParser
 
 config = ConfigParser.RawConfigParser()
 def ConfigSectionMap(section):
-	config.read("/home/ubuntu/Python-2.7.12/connection.conf")
+	config.read("/home/ubuntu/code/BW_ctrl_ml/connection.conf")
 	dict1 = {}
 	try:
 		options = config.options(section)
@@ -23,7 +23,7 @@ import MySQLdb
 db = MySQLdb.connect(host=ConfigSectionMap("Controller")['address'],
                      user=ConfigSectionMap("Controller")['username'],   
                      passwd=ConfigSectionMap("Controller")['password'],
-                     db="keystone",
+                     db="nova",
 		     port=3306)
 
 #db = mysql.connector.connect( host='192.168.1.7',
@@ -37,11 +37,28 @@ db = MySQLdb.connect(host=ConfigSectionMap("Controller")['address'],
 cur = db.cursor()
 
 # Use all the SQL you like
-cur.execute("SELECT * FROM user")
+cur.execute("SELECT * FROM instances")
 
 # print all the first cell of all the rows
 for row in cur.fetchall():
-    print row[0]
+	print row
+	print '\n'
+
+db = MySQLdb.connect(host=ConfigSectionMap("Controller")['address'],
+                     user=ConfigSectionMap("Controller")['username'],
+                     passwd=ConfigSectionMap("Controller")['password'],
+                     db="neutron",
+                     port=3306)
+
+cur = db.cursor()
+
+# Use all the SQL you like
+cur.execute("SELECT * FROM ports")
+
+# print all the first cell of all the rows
+for row in cur.fetchall():
+        print row
+        print '\n'
 
 db.close()
 #Name = ConfigSectionMap("Controller")['name']
