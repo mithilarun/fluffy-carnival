@@ -25,38 +25,58 @@ def ConfigSectionMap(section):
                 print("exception on {}".format(section))
         return dict1
 
-ssh = paramiko.SSHClient()
-ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-ssh.connect(ConfigSectionMap("Controller")['address'], username=ConfigSectionMap("Controller")['username'],password=ConfigSectionMap("Controller")['password'])
-stdin, stdout, stderr = ssh.exec_command(
-    "sudo ovs-ofctl dump-ports-desc br-int")
-outputList=stdout.read().split("\n")
-tenantPorts=dict()
 
-for x in outputList:
-	for projectID,portID in instPortDict.iteritems():
-		for individualPortID in portID:
-			if individualPortID in x:
-				if projectID in tenantPorts:
-					tenantPorts[projectID].append(x.split("(")[0].split(" ")[1])
-				else:
-					tenantPorts[projectID]=[x.split("(")[0].split(" ")[1]]
-stdin, stdout, stderr = ssh.exec_command(
-    "sudo ovs-ofctl dump-ports br-int")
-outputList=stdout.read().split("\n")
+class portInfo:
 
-bandwidthDict=dict()
-i=0
-for x in outputList:
-	for projectID,portNumber in tenantPorts.iteritems():
-		for individualPortNumber in portNumber:
-			if "tx pkts" in x:
-				if individualPortNumber in outputList[i-1].split(":")[0]:
-					if projectID in bandwidthDict:
-						bandwidthDict[projectID].append(int(x.split(",")[0].split("=")[1]))
-					else:
-						bandwidthDict[projectID]=[int(x.split(",")[0].split("=")[1])]
-	i=i+1
+	def __init__(self):
+		self.tenantPorts=dict()
+		self.bandwidthDict=dict()
+		self.ssh=paramiko.SSHClient()
+		self.outputList=list()
+		self.outputList1=list()
+		self.instDict=dict()
+		self.instPortDict=dict()
+
+	def sshConnect(self):
+		self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+		self.ssh.connect(ConfigSectionMap("Controller")['address'], username=ConfigSectionMap("Controller")['username'],password=ConfigSectionMap("Controller")['password'])
+		stdin, stdout, stderr = self.ssh.exec_command(
+		"sudo ovs-ofctl dump-ports-desc br-int")
+		self.outputList1=stdout.read().split("\n")
+		stdin, stdout, stderr = self.ssh.exec_command(
+		"sudo ovs-ofctl dump-ports br-int")
+		self.outputList=stdout.read().split("\n")
+		projectIDObj=projectID()
+		self.instDict=projectIDObj.projectIDMapToInstance()
+		self.instPortDict=projectIDObj.projectIDMapToPorts()
+
+	def instanceToPortNumber(self):
+
+		for x in self.outputList1:
+			for projectID,portID in self.instPortDict.iteritems():
+				for individualPortID in portID:
+					if individualPortID in x:
+						if projectID in self.tenantPorts:
+							self.tenantPorts[projectID].append(x.split("(")[0].split(" ")[1])
+						else:
+							self.tenantPorts[projectID]=[x.split("(")[0].split(" ")[1]]
+		return self.tenantPorts
+
+	def instanceToBandwidth(self):
+
+		i=0
+		for x in self.outputList:
+			for projectID,portNumber in self.tenantPorts.iteritems():
+				for individualPortNumber in portNumber:
+					if "tx pkts" in x:
+						if individualPortNumber in self.outputList[i-1].split(":")[0]:
+							if projectID in self.bandwidthDict:
+								self.bandwidthDict[projectID].append(int(x.split(",")[0].split("=")[1]))
+							else:
+								self.bandwidthDict[projectID]=[int(x.split(",")[0].split("=")[1])]
+			i=i+1
+		return self.bandwidthDict
+
 
 #print bandwidthDict
 
