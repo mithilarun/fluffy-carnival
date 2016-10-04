@@ -62,7 +62,7 @@ tables = [x[0] for x in answer]#Tables contain all the tables that are present i
 number_tables = len(tables)
 bandwidth_matrix = [[]]
 for i in range(number_tables):
-	query = "select bandwidthusage from %s order by bandwidthusage desc limit 60;" % tables[0]
+	query = "select bandwidthusage from %s order by bandwidthusage desc limit 60;" % tables[i]
 	cur.execute(query)
     try:
         answers=cur.fetchall()
@@ -77,6 +77,7 @@ cursor_db = predicted_db.cursor()
 cursor_db.execute("SET sql_notes = 0;")
 cursor_db.execute("create database if not exists predicted_bandwidth;")
 cursor_db.execute("SET sql_notes =1;")
+cursor_db.close()
 
 predicted_db = MySQLdb.connect(host="192.168.1.7",user="ubuntu",passwd="123456",db="predicted_bandwidth",port=3306)
 cursor_db = predicted_db.cursor()

@@ -21,6 +21,8 @@ import  time
 import  shlex
 import  subprocess
 
+import  MySQLdb as db
+
 # Global constants
 FREQUENCY = 5
 
@@ -30,7 +32,8 @@ class RuleGenerator(object):
         # Nothing to do for now
         return
 
-    def run_cmd(self, cmd=None):
+    @staticmethod
+    def run_cmd(cmd=None):
         if cmd is None:
             return
 
@@ -41,7 +44,8 @@ class RuleGenerator(object):
         except subprocess.CalledProcessError:
             print "Failed to run command " + cmd
 
-    def make_cmd(self, rule=None):
+    @staticmethod
+    def make_cmd(rule=None):
         if rule is None:
             return
 
@@ -52,9 +56,43 @@ class RuleGenerator(object):
 
         return cmd
 
-    def read_data(self):
-        # TODO: Need to figure out the interface from the RRDTool database
-        data = {}
+    @staticmethod
+    def read_data():
+        data = []
+
+        predicted_db = db.connect(host='192.168.1.7', user='ubuntu', passwd='123456',
+                                  db="predicted_bandwidth", port=3306)
+        cursor = predicted_db.cursor()
+
+        # Need to get a list of tables
+        cursor.execute("show tables;")
+        try:
+            tables = cursor.fetchall()
+        except db.Error:
+            print "Unable to read from predicted_bandwidth db"
+            return None
+
+        table_list = [table[0] for table in tables]
+
+        for table in table_list:
+            query = "select * from %s", table
+            cursor.execute(query)
+
+            try:
+                entries = cursor.fetchall()
+            except db.Error:
+                print "Unable fetch entries from %s table", table
+
+            for entry in entries:
+                temp = {}
+                temp['time'] = entry[0]
+                temp['port'] = entry[1]
+                temp['bw'] = entry[2]
+
+                data.append(temp)
+
+            predicted_db.close()
+
         return data
 
     def publish_rule(self, rule=None):
@@ -68,14 +106,20 @@ class RuleGenerator(object):
         # do whatever
         data = self.read_data()
 
+        if data is None:
+            return -1
+
         for entry in data:
             while entry['time'] == datetime.datetime.now().time():
                 self.publish_rule(entry)
                 time.sleep(FREQUENCY)
 
+        return 0
+
 def main():
     rule_gen = RuleGenerator()
-    rule_gen.create_rules()
+    if rule_gen.create_rules() != 0:
+        print "Failed to generate rules. Exiting."
 
 if __name__ == '__main__':
     main()
