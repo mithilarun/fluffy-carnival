@@ -1,15 +1,13 @@
-# This is the 1st draft of Holt Winter's Implementation
+# This is the 2nd draft of Bandwidth Prediction Algorithm.
 # The below program is an implementation of Holt Winter's Forecasting technique. The algorithm is a triple exponential smoothing to predict number of points
-# Series is a variable which we used to store bandwidth values and contain 60 values which define the bandwidth of each minute in an hour
+# series is a variable which we used to store bandwidth values and contain 60 values which define the bandwidth of each minute in an hour
 # Bandwidth_Prediction is the variable where predicted points are bring stored. We will be predicting 60 points in the future i.e., Bandwidth range for the next hour
 # slen is the season length which is a requirement of a time series. In this implementation it will be chosen as 15 minutes i.e. 15 
 # Values of aplha,beta and gamma are predicted using formula's given in report. 
 # Value of alpha is 0.09, beta is 0.004 and gamma is 0.09
 
-
-
-
-
+import MySQLdb as db
+from datetime import datetime
 
 def initial_trend(series, slen):
     sum = 0.0
@@ -52,11 +50,46 @@ def triple_exponential_smoothing(series, slen, alpha, beta, gamma, n_preds):
             result.append(smooth+trend+seasonals[i%slen])
     return result
     
+predictor_db = MySQLdb.connect(host="192.168.1.7",user="ubuntu",passwd="123456",db="bandwidth",port=3306)
+cur =predictor_db.cursor()
+cur.execute("show tables;")
+#cur.execute("select found_rows();")
+try:
+	answer=cur.fetchall()
+except:
+	print "unable to fetch"
+tables = [x[0] for x in answer]#Tables contain all the tables that are present in database. We have to predict bandwidth for every table
+number_tables = len(tables)
+bandwidth_matrix = [[]]
+for i in range(number_tables):
+	query = "select bandwidthusage from %s order by bandwidthusage desc limit 60;" % tables[0]
+	cur.execute(query)
+    try:
+        answers=cur.fetchall()
+    except:
+        print "unable to fetch"
+	listi = [x[0] for x in answers]# Listi contains the bandwidth Value of our hour for the tenant
+    bandwidth_matrix.append(listi)
+predictor_db.close()
 
+predicted_db = MySQLdb.connect(host="192.168.1.7",user="ubuntu",passwd="123456",port=3306)
+cursor_db = predicted_db.cursor()
+cursor_db.execute("SET sql_notes = 0;")
+cursor_db.execute("create database if not exists predicted_bandwidth;")
+cursor_db.execute("SET sql_notes =1;")
 
-series = [30,21,29,31,40,48,53,47,37,39,31,29,17,9,20,24,27,35,41,38,
-          27,31,27,26,21,13,21,18,33,35,40,36,22,24,21,20,17,14,17,19,
-          26,29,40,31,20,24,18,26,17,9,17,21,28,32,46,33,23,28,22,27,
-          18,8,17,21,31,34,44,38,31,30,26,32]
-Bandwidth_Prediction = triple_exponential_smoothing(series,12, 0.716, 0.029, 0.993, 24)
-print('\n'.join(map(str,Bandwidth_Prediction)))
+predicted_db = MySQLdb.connect(host="192.168.1.7",user="ubuntu",passwd="123456",db="predicted_bandwidth",port=3306)
+cursor_db = predicted_db.cursor()
+for i in range(number_tables):
+    bandwidth_matrix[i+1].reverse()
+    series = bandwodth_matrix[i+1]
+    Bandwidth_Prediction = triple_exponential_smoothing(series,15, 0.09, 0.004, 0.09, 60)
+    cursor_db.execute("SET sql_notes = 0;")
+    cursor_db.execute("create table if not exists {} (futuredatetime VARCHAR(50),predicted_bandwidthusage INTEGER);".format("tenant"+str(i)))
+    cursor_db.execute("SET sql_notes = 1;")
+    for j in range(60):
+        curr_time = datetime.now()
+        future_time = curr_time + (seconds = j+1)
+        cursor_db.execute("insert into {} (futuredatetime,predicted_bandwidthusage) values ('{}',{});".format("tenant"+str(i),future_time.strftime('%Y/%m/%d %H:%M:%S'),Bandwidth_Prediction[j]))
+        cursor_db.commit()
+predicted_db.close()
