@@ -7,7 +7,7 @@
 # Value of alpha is 0.09, beta is 0.004 and gamma is 0.09
 
 import MySQLdb as db
-from datetime import datetime
+from datetime import datetime, timedelta
 
 def initial_trend(series, slen):
     sum = 0.0
@@ -89,7 +89,7 @@ for i in range(number_tables):
     cursor_db.execute("SET sql_notes = 1;")
     for j in range(60):
         curr_time = datetime.now()
-        future_time = curr_time + (seconds = j+1)
+        future_time = curr_time + timedelta(seconds = j+1)
         cursor_db.execute("insert into {} (futuredatetime,predicted_bandwidthusage) values ('{}',{});".format("tenant"+str(i),future_time.strftime('%Y/%m/%d %H:%M:%S'),Bandwidth_Prediction[j]))
-        cursor_db.commit()
+        predicted_db.commit()
 predicted_db.close()
