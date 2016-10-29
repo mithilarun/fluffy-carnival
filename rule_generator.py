@@ -16,15 +16,16 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-import  datetime
-import  time
-import  shlex
-import  subprocess
+import datetime
+import time
+import shlex
+import subprocess
 
-import  MySQLdb as db
+import MySQLdb as db
 
 # Global constants
 FREQUENCY = 5
+
 
 class RuleGenerator(object):
 
@@ -115,6 +116,7 @@ class RuleGenerator(object):
                 time.sleep(FREQUENCY)
 
         return 0
+
 
 def main():
     rule_gen = RuleGenerator()

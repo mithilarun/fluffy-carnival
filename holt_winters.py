@@ -13,45 +13,51 @@
 from datetime import datetime, timedelta
 import MySQLdb
 
+
 def initial_trend(series, slen):
     trend_sum = 0.0
     for i in range(slen):
-        trend_sum += float(series[i+slen] - series[i]) / slen
+        trend_sum += float(series[i + slen] - series[i]) / slen
     return trend_sum / slen
+
 
 def initial_seasonal_components(series, slen):
     seasonals = {}
     season_averages = []
-    n_seasons = int(len(series)/slen)
+    n_seasons = int(len(series) / slen)
     # compute season averages
     for j in range(n_seasons):
-        season_averages.append(sum(series[slen*j:slen*j+slen])/float(slen))
+        season_averages.append(
+            sum(series[slen * j:slen * j + slen]) / float(slen))
     # compute initial values
     for i in range(slen):
         sum_of_vals_over_avg = 0.0
         for j in range(n_seasons):
-            sum_of_vals_over_avg += series[slen*j+i]-season_averages[j]
-        seasonals[i] = sum_of_vals_over_avg/n_seasons
+            sum_of_vals_over_avg += series[slen * j + i] - season_averages[j]
+        seasonals[i] = sum_of_vals_over_avg / n_seasons
     return seasonals
+
 
 def triple_exponential_smoothing(series, slen, alpha, beta, gamma, n_preds):
     result = []
     seasonals = initial_seasonal_components(series, slen)
-    for i in range(len(series)+n_preds):
-        if i == 0: # initial values
+    for i in range(len(series) + n_preds):
+        if i == 0:  # initial values
             smooth = series[0]
             trend = initial_trend(series, slen)
             result.append(series[0])
             continue
-        if i >= len(series): # we are forecasting
+        if i >= len(series):  # we are forecasting
             m = i - len(series) + 1
-            result.append((smooth + m*trend) + seasonals[i%slen])
+            result.append((smooth + m * trend) + seasonals[i % slen])
         else:
             val = series[i]
-            last_smooth, smooth = smooth, alpha*(val-seasonals[i%slen]) + (1-alpha)*(smooth+trend)
-            trend = beta * (smooth-last_smooth) + (1-beta)*trend
-            seasonals[i%slen] = gamma*(val-smooth) + (1-gamma)*seasonals[i%slen]
-            result.append(smooth+trend+seasonals[i%slen])
+            last_smooth, smooth = smooth, alpha * \
+                (val - seasonals[i % slen]) + (1 - alpha) * (smooth + trend)
+            trend = beta * (smooth - last_smooth) + (1 - beta) * trend
+            seasonals[i % slen] = gamma * \
+                (val - smooth) + (1 - gamma) * seasonals[i % slen]
+            result.append(smooth + trend + seasonals[i % slen])
     return result
 
 predictor_db = MySQLdb.connect(host="192.168.1.7",
@@ -74,13 +80,15 @@ tables = [x[0] for x in answer]
 number_tables = len(tables)
 bandwidth_matrix = [[]]
 for itr in range(number_tables):
-    query = "select bandwidthusage from %s order by bandwidthusage desc limit 60;" % tables[itr]
+    query = "select bandwidthusage from %s order by bandwidthusage desc limit 60;" % tables[
+        itr]
     cur.execute(query)
     try:
         answers = cur.fetchall()
     except:
         print "unable to fetch"
-    listi = [x[0] for x in answers]# Listi contains the bandwidth Value of our hour for the tenant
+    # Listi contains the bandwidth Value of our hour for the tenant
+    listi = [x[0] for x in answers]
     bandwidth_matrix.append(listi)
 predictor_db.close()
 
@@ -102,22 +110,24 @@ predicted_db = MySQLdb.connect(host="192.168.1.7",
                                port=3306)
 cursor_db = predicted_db.cursor()
 for itr in range(number_tables):
-    bandwidth_matrix[itr+1].reverse()
-    bw_series = bandwidth_matrix[itr+1]
-    Bandwidth_Prediction = triple_exponential_smoothing(bw_series, 15, 0.09, 0.004, 0.09, 60)
+    bandwidth_matrix[itr + 1].reverse()
+    bw_series = bandwidth_matrix[itr + 1]
+    Bandwidth_Prediction = triple_exponential_smoothing(
+        bw_series, 15, 0.09, 0.004, 0.09, 60)
 
     cursor_db.execute("SET sql_notes = 0;")
-    cursor_db.execute("create table if not exists {} " + \
-                      "(futuredatetime VARCHAR(50),predicted_bandwidthusage " + \
-                      "INTEGER);".format("tenant"+str(itr)))
+    cursor_db.execute("create table if not exists {} " +
+                      "(futuredatetime VARCHAR(50),predicted_bandwidthusage " +
+                      "INTEGER);".format("tenant" + str(itr)))
     cursor_db.execute("SET sql_notes = 1;")
 
     for j in range(60):
         curr_time = datetime.now()
-        future_time = curr_time + timedelta(seconds=j+1)
-        cursor_db.execute("insert into {} (futuredatetime,predicted_bandwidthusage) " + \
-                          "values ('{}',{});".format("tenant"+str(itr),
-                                                     future_time.strftime('%Y/%m/%d %H:%M:%S'),
+        future_time = curr_time + timedelta(seconds=j + 1)
+        cursor_db.execute("insert into {} (futuredatetime,predicted_bandwidthusage) " +
+                          "values ('{}',{});".format("tenant" + str(itr),
+                                                     future_time.strftime(
+                                                         '%Y/%m/%d %H:%M:%S'),
                                                      Bandwidth_Prediction[j]))
         predicted_db.commit()
 predicted_db.close()

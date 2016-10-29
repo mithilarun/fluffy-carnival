@@ -5,6 +5,8 @@ from portsInfo import portInfo
 
 CONFIG_FILE = "/home/ubuntu/code/BW_ctrl_ml/connection.conf"
 config = ConfigParser.RawConfigParser()
+
+
 def ConfigSectionMap(section):
     config.read(CONFIG_FILE)
     dict1 = {}
@@ -46,13 +48,13 @@ i = 0
 for instance, bandwidthList in bandwidthDict.iteritems():
     cur.execute("SET sql_notes=0; ")
     cur.execute("create table if not exists {} \
-				(currentdatetime VARCHAR(50),bandwidthusage INTEGER);" \
-				.format("tenant"+str(i)))
+				(currentdatetime VARCHAR(50),bandwidthusage INTEGER);"
+                .format("tenant" + str(i)))
     cur.execute("SET sql_notes=1; ")
-    cur.execute("INSERT INTO {} (currentdatetime,bandwidthusage) values ('{}',{});" \
-				.format("tenant"+str(i), datetime.now().strftime('%Y/%m/%d %H:%M:%S'),
-						      sum(bandwidthList)))
+    cur.execute("INSERT INTO {} (currentdatetime,bandwidthusage) values ('{}',{});"
+                .format("tenant" + str(i), datetime.now().strftime('%Y/%m/%d %H:%M:%S'),
+                        sum(bandwidthList)))
     db.commit()
-    i = i+1
+    i = i + 1
 
 db.close()

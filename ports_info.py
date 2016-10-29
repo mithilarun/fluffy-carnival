@@ -9,6 +9,7 @@ instPortDict = projectIDObj.projectIDMapToPorts()
 CONFIG_FILE = "/home/ubuntu/code/BW_ctrl_ml/connection.conf"
 config = ConfigParser.RawConfigParser()
 
+
 def ConfigSectionMap(section):
     config.read(CONFIG_FILE)
     dict1 = {}
@@ -41,9 +42,11 @@ class portInfo(object):
         self.ssh.connect(ConfigSectionMap("Controller")['address'],
                          username=ConfigSectionMap("Controller")['username'],
                          password=ConfigSectionMap("Controller")['password'])
-        stdin, stdout, stderr = self.ssh.exec_command("sudo ovs-ofctl dump-ports-desc br-int")
+        stdin, stdout, stderr = self.ssh.exec_command(
+            "sudo ovs-ofctl dump-ports-desc br-int")
         self.outputList1 = stdout.read().split("\n")
-        stdin, stdout, stderr = self.ssh.exec_command("sudo ovs-ofctl dump-ports br-int")
+        stdin, stdout, stderr = self.ssh.exec_command(
+            "sudo ovs-ofctl dump-ports br-int")
         self.outputList = stdout.read().split("\n")
         projectIDObj = projectID()
         self.instDict = projectIDObj.projectIDMapToInstance()
@@ -56,9 +59,11 @@ class portInfo(object):
                 for individualPortID in portID:
                     if individualPortID in x:
                         if projectID in self.tenantPorts:
-                            self.tenantPorts[projectID].append(x.split("(")[0].split(" ")[1])
+                            self.tenantPorts[projectID].append(
+                                x.split("(")[0].split(" ")[1])
                         else:
-                            self.tenantPorts[projectID] = [x.split("(")[0].split(" ")[1]]
+                            self.tenantPorts[projectID] = [
+                                x.split("(")[0].split(" ")[1]]
         return self.tenantPorts
 
     def instanceToBandwidth(self):
@@ -68,18 +73,19 @@ class portInfo(object):
             for projectID, portNumber in self.tenantPorts.iteritems():
                 for individualPortNumber in portNumber:
                     if "tx pkts" in x:
-                        if individualPortNumber in self.outputList[i-1].split(":")[0]:
+                        if individualPortNumber in self.outputList[i - 1].split(":")[0]:
                             if projectID in self.bandwidthDict:
-                                self.bandwidthDict[projectID].append(int(x.split(",")[0].\
-                                                                     split("=")[1]))
+                                self.bandwidthDict[projectID].append(int(x.split(",")[0].
+                                                                         split("=")[1]))
                             else:
-                                self.bandwidthDict[projectID] = [int(x.split(",")[0].split("=")[1])]
-            i = i+1
+                                self.bandwidthDict[projectID] = [
+                                    int(x.split(",")[0].split("=")[1])]
+            i = i + 1
         return self.bandwidthDict
 
 
-#print bandwidthDict
+# print bandwidthDict
 
-#print tenantPorts
+# print tenantPorts
 
-#print outputList
+# print outputList

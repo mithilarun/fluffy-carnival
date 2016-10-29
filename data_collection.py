@@ -1,14 +1,15 @@
 import ConfigParser
 import MySQLdb
 
-#dir_path=os.path.dirname(os.path.realpath(__file__))
-#fname=dir_path+"/data.txt"
-#if os.path.isfile(fname):
-#	os.remove(fname)
-#	f=open(fname,"w")
-#else:
-#	f=open(fname,"w")
+# dir_path=os.path.dirname(os.path.realpath(__file__))
+# fname=dir_path+"/data.txt"
+# if os.path.isfile(fname):
+#    os.remove(fname)
+#    f=open(fname,"w")
+# else:
+#    f=open(fname,"w")
 CONFIG_FILE = "/home/ubuntu/code/BW_ctrl_ml/connection.conf"
+
 
 def config_section_map(section):
     config = ConfigParser.RawConfigParser()
@@ -26,6 +27,7 @@ def config_section_map(section):
         print "exception on {}".format(section)
         return dict1
 
+
 class ProjectId(object):
 
     def __init__(self):
@@ -34,12 +36,14 @@ class ProjectId(object):
 
     def project_id_map_to_instance(self):
         nova_db = MySQLdb.connect(host=config_section_map("Controller")['address'],
-                                  user=config_section_map("Controller")['username'],
-                                  passwd=config_section_map("Controller")['password'],
-                                  db="nova",
-                                  port=3306)
+                                  user=config_section_map("Controller")[
+            'username'],
+            passwd=config_section_map("Controller")[
+            'password'],
+            db="nova",
+            port=3306)
 
-        #cursor object to execute command
+        # cursor object to execute command
         cur = nova_db.cursor()
 
         cur.execute("SELECT * FROM instances")
@@ -50,21 +54,22 @@ class ProjectId(object):
             else:
                 self.inst_dict[row[6]] = [row[17]]
 
-		#for it in inst_dict.items():
-		#	f.write("%s:%s" %it)
-		#	f.write("\n")
-		#f.write(inst_dict)
-		#f.write("\n")
+                # for it in inst_dict.items():
+                #    f.write("%s:%s" %it)
+                #    f.write("\n")
+                # f.write(inst_dict)
+                # f.write("\n")
         nova_db.close()
         return self.inst_dict
 
-
     def project_id_map_to_ports(self):
         neutron_db = MySQLdb.connect(host=config_section_map("Controller")['address'],
-                                     user=config_section_map("Controller")['username'],
-                                     passwd=config_section_map("Controller")['password'],
-                                     db="neutron",
-                                     port=3306)
+                                     user=config_section_map("Controller")[
+            'username'],
+            passwd=config_section_map("Controller")[
+            'password'],
+            db="neutron",
+            port=3306)
 
         cur = neutron_db.cursor()
 
@@ -74,12 +79,13 @@ class ProjectId(object):
             if "compute:nova" in row[8]:
                 if row[0] in self.inst_dict:
                     if row[0] in self.inst_port_dict:
-                        self.inst_port_dict[row[0]].append(row[1].split('-')[0])
+                        self.inst_port_dict[row[0]].append(
+                            row[1].split('-')[0])
                     else:
                         self.inst_port_dict[row[0]] = [row[1].split('-')[0]]
-#for it in inst_port_dict.items():
+# for it in inst_port_dict.items():
 #        f.write("%s:%s" %it)
-#f.write("\n")
-#fwrite(inst_port_dict)
+# f.write("\n")
+# fwrite(inst_port_dict)
         neutron_db.close()
         return self.inst_port_dict
